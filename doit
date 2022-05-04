@@ -1,0 +1,53 @@
+#!/bin/bash
+# qemu-system-riscv64 \
+# -machine virt -nographic -m 2048 -smp 4 \
+# -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf \
+# -kernel /usr/lib/u-boot/qemu-riscv64_smode/uboot.elf \
+# -device virtio-net-device,netdev=eth0 -netdev user,id=eth0 \
+# -drive file=ubuntu-20.04.4-preinstalled-server-riscv64+unleashed.img,format=raw,if=virtio
+
+# qemu-system-riscv64 \
+# -machine virt \
+# -nographic \
+# -m 2048 -smp 4 \
+# -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf \
+# -kernel /usr/lib/u-boot/qemu-riscv64_smode/uboot.elf \
+# -device virtio-net-pci,netdev=eth0 \
+# -netdev user,id=eth0,hostfwd=tcp::2222-:22 \
+# -drive file=ubuntu.img,format=raw,if=virtio
+
+# qemu-system-riscv64 \
+# -machine virt \
+# -nographic \
+# -m 2048 -smp 4 \
+# -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf \
+# -kernel /usr/lib/u-boot/qemu-riscv64_smode/uboot.elf \
+# -device virtio-net-device,netdev=eth0 -netdev user,id=eth0 \
+# -drive file=ubuntu.img,format=raw,if=virtio
+set -e
+set -x
+if test ! -f opensbi/build/platform/generic/firmware/fw_payload.bin; then
+/bin/rm -f *.img
+# wget https://cdimage.ubuntu.com/releases/20.04/release/ubuntu-20.04.3-preinstalled-server-riscv64+unmatched.img.xz
+cp /home/user/Downloads/ubuntu-20.04.4-preinstalled-server-riscv64+unmatched.img.xz .
+xz -dk ubuntu-20.04.4-preinstalled-server-riscv64+unmatched.img.xz
+export CROSS_COMPILE=riscv64-linux-gnu-
+git clone https://source.denx.de/u-boot/u-boot.git
+cd u-boot/
+git reset --hard v2021.10-rc3
+make qemu-riscv64_smode_defconfig
+make -j$(nproc)
+cd ..
+git clone https://github.com/riscv/opensbi.git
+cd opensbi/
+make PLATFORM=generic FW_PAYLOAD_PATH=../u-boot/u-boot.bin
+cd ..
+fi
+qemu-system-riscv64 -machine virt -m 1G -nographic \
+-bios opensbi/build/platform/generic/firmware/fw_payload.bin \
+-smp cores=2 -gdb tcp::1234 \
+-device virtio-net-device,netdev=net0 \
+-netdev user,id=net0,tftp=tftp \
+-drive if=none,file=ubuntu-20.04.4-preinstalled-server-riscv64+unmatched.img,format=raw,id=mydisk \
+-device ich9-ahci,id=ahci -device ide-hd,drive=mydisk,bus=ahci.0 \
+-device virtio-rng-pci
