@@ -1,8 +1,10 @@
+UBUNTU_RELEASE=ubuntu-22.04-preinstalled-server-riscv64+unmatched.img
+UBUNTU_PATH=https://cdimage.ubuntu.com/releases/22.04/release/${UBUNTU_RELEASE}.xz
 qemu-system-riscv64 -machine virt -m 1G -nographic \
 -bios opensbi/build/platform/generic/firmware/fw_payload.bin \
 -smp cores=2 -gdb tcp::1234 \
 -device virtio-net-device,netdev=net0 \
 -netdev user,id=net0,tftp=tftp \
--drive if=none,file=ubuntu-20.04.4-preinstalled-server-riscv64+unmatched.img,format=raw,id=mydisk \
+-drive if=none,file=${UBUNTU_RELEASE},format=raw,id=mydisk \
 -device ich9-ahci,id=ahci -device ide-hd,drive=mydisk,bus=ahci.0 \
 -device virtio-rng-pci

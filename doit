@@ -1,4 +1,12 @@
 #!/bin/bash
+UBUNTU_RELEASE=ubuntu-22.04-preinstalled-server-riscv64+unmatched.img
+UBUNTU_PATH=https://cdimage.ubuntu.com/releases/22.04/release/${UBUNTU_RELEASE}.xz
+# The overall sketch for this is from the Ubuntu Wiki:
+# https://wiki.ubuntu.com/RISC-V
+#
+# This is part of a webpage that suggested how to run the RISC-V emulator under QEMU.
+# I will leave all this spew in case I want to pick out some bits and pieces.
+#
 # qemu-system-riscv64 \
 # -machine virt -nographic -m 2048 -smp 4 \
 # -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.elf \
@@ -24,15 +32,30 @@
 # -kernel /usr/lib/u-boot/qemu-riscv64_smode/uboot.elf \
 # -device virtio-net-device,netdev=eth0 -netdev user,id=eth0 \
 # -drive file=ubuntu.img,format=raw,if=virtio
+# wget https://cdimage.ubuntu.com/releases/20.04/release/ubuntu-20.04.3-preinstalled-server-riscv64+unmatched.img.xz
 set -e
 set -x
-if test ! -f opensbi/build/platform/generic/firmware/fw_payload.bin; then
 /bin/rm -f *.img
-# wget https://cdimage.ubuntu.com/releases/20.04/release/ubuntu-20.04.3-preinstalled-server-riscv64+unmatched.img.xz
-cp /home/user/Downloads/ubuntu-20.04.4-preinstalled-server-riscv64+unmatched.img.xz .
-xz -dk ubuntu-20.04.4-preinstalled-server-riscv64+unmatched.img.xz
+if [ ! -f "${UBUNTU_RELEASE}.xz" ]
+then
+    # we do not want to get the release unless we have to
+    wget ${UBUNTU_PATH}
+fi
+unxz -k "${UBUNTU_RELEASE}.xz"
+sudo apt install gcc-riscv64-linux-gnu
+# https://github.com/riscv-collab/riscv-gnu-toolchain
+sudo apt install autoconf automake autotools-dev curl python3 libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev
+# Other things for u-boot
+sudo apt install openssl libssl-dev
+# https://command-not-found.com/qemu-system-riscv64 
+sudo apt-get install qemu-system-misc
+qemu-img resize -f raw ${UBUNTU_RELEASE} +5G
+if test ! -f opensbi/build/platform/generic/firmware/fw_payload.bin; then
 export CROSS_COMPILE=riscv64-linux-gnu-
-git clone https://source.denx.de/u-boot/u-boot.git
+if [ ! -d u-boot ]
+then
+    git clone https://source.denx.de/u-boot/u-boot.git
+fi
 cd u-boot/
 git reset --hard v2021.10-rc3
 make qemu-riscv64_smode_defconfig
@@ -43,11 +66,15 @@ cd opensbi/
 make PLATFORM=generic FW_PAYLOAD_PATH=../u-boot/u-boot.bin
 cd ..
 fi
+# Sleep to show the root password
+echo Initial password is ubuntu, ubuntu, you will have to change the password on login
+echo root is just "sudo -s"
+sleep 5
 qemu-system-riscv64 -machine virt -m 1G -nographic \
 -bios opensbi/build/platform/generic/firmware/fw_payload.bin \
 -smp cores=2 -gdb tcp::1234 \
 -device virtio-net-device,netdev=net0 \
 -netdev user,id=net0,tftp=tftp \
--drive if=none,file=ubuntu-20.04.4-preinstalled-server-riscv64+unmatched.img,format=raw,id=mydisk \
+-drive if=none,file=${UBUNTU_RELEASE},format=raw,id=mydisk \
 -device ich9-ahci,id=ahci -device ide-hd,drive=mydisk,bus=ahci.0 \
 -device virtio-rng-pci

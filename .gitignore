@@ -1,5 +1,24 @@
 archive
 opensbi
 u-boot
-ubuntu-20.04.4-preinstalled-server-riscv64+unmatched.img
-ubuntu-20.04.4-preinstalled-server-riscv64+unmatched.img.xz
+*.img
+*.img.xz
+
+# compiled includes
+*.d
+
+# objects
+*.o
+*.ko
+*.obj
+*.elf
+*.elf.size
+
+# compiler output
+*.map
+
+# editor leftovers
+*.swp
+*.swo
+*~
+
