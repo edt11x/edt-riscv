@@ -1,5 +1,5 @@
 #!/bin/bash
-UBUNTU_RELEASE=ubuntu-22.04-preinstalled-server-riscv64+unmatched.img
+UBUNTU_RELEASE=ubuntu-22.04.1-preinstalled-server-riscv64+unmatched.img
 UBUNTU_PATH=https://cdimage.ubuntu.com/releases/22.04/release/${UBUNTU_RELEASE}.xz
 # The overall sketch for this is from the Ubuntu Wiki:
 # https://wiki.ubuntu.com/RISC-V
